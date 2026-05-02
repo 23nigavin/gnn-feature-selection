@@ -1,3 +1,7 @@
+import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv
+
 # simple 2 layer GCN
 class GCN(torch.nn.Module):
     def __init__(self, num_features, hidden_dim, num_classes, dropout=0.5):

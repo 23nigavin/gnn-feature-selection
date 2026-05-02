@@ -1,4 +1,5 @@
 # Functions for plotting results
+import matplotlib.pyplot as plt
 
 def plot_accuracy_vs_noise(noise_percent, clean_baseline_acc, noise_no_selection_acc, noise_with_selection_acc):
     plt.figure(figsize=(8, 5))

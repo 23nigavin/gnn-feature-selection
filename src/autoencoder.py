@@ -11,7 +11,6 @@ import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
 from torch_geometric.nn import GCNConv
 from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA
 
 
 # Config

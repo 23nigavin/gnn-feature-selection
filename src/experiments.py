@@ -1,4 +1,11 @@
 # Script to run experiments
+import numpy as np
+import torch
+
+from gnn import GCN, train, test
+from noise import add_junk_features
+from preprocessing_selection import select_top_k_features_l1
+from util import aggregate_features
 
 def run_l1_selection_experiment(dataset, noise_ratio=1.0, use_feature_selection=True, k=None, seed=42):
     torch.manual_seed(seed)
@@ -20,7 +27,7 @@ def run_l1_selection_experiment(dataset, noise_ratio=1.0, use_feature_selection=
             k = num_features
 
         x_agg = aggregate_features(graph.x, graph.edge_index)
-        selected_indices = select_top_k_features_l1(x_agg=x_agg, y=graph.y, train_mask=graph.train_mask, k=k)
+        selected_indices = select_top_k_features_l1(x_agg, y=graph.y, train_mask=graph.train_mask, k=k)
         graph.x = graph.x[:, selected_indices]
 
     model = GCN(num_features=graph.x.shape[1], hidden_dim=16, num_classes=dataset.num_classes)

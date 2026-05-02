@@ -1,4 +1,6 @@
 # Utility functions
+import torch
+from torch_geometric.utils import add_self_loops, degree
 
 def aggregate_features(x, edge_index):
     num_nodes = x.size(0)

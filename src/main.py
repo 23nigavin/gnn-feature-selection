@@ -1,11 +1,7 @@
-import torch
-import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
-from torch_geometric.nn import GCNConv
-import numpy as np
-from sklearn.linear_model import LogisticRegression
-from torch_geometric.utils import add_self_loops, degree
-import matplotlib.pyplot as plt
+
+from experiments import run_l1_selection_experiment_avg
+from plotting import plot_accuracy_vs_noise, plot_accuracy_vs_k
 
 def main():
     dataset = Planetoid(root="data/Planetoid", name="Cora")

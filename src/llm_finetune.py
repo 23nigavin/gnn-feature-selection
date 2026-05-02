@@ -1,10 +1,8 @@
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW, get_scheduler
 import numpy as np
 from sklearn.metrics import accuracy_score
-import os
 
 class TextDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_length=512):

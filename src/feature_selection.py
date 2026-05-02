@@ -8,7 +8,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.inspection import permutation_importance
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import mutual_info_classif, SelectKBest, f_classif
-import matplotlib.pyplot as plt
 import random
 from dataclasses import dataclass
 

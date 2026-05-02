@@ -1,4 +1,5 @@
 # All noise functions exist here
+import torch
 
 """
 Simply appends junk features to feature nodes
