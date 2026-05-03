@@ -37,7 +37,6 @@ def select_features_permutation(feature_matrix, y, train_mask, k):
     top_k_indices = np.argsort(feature_scores)[-k:]
     return np.sort(top_k_indices)
 
-
 def select_features_correlation(feature_matrix, y, train_mask, k):
     x_train = feature_matrix[train_mask].cpu().numpy()
     y_train = y[train_mask].cpu().numpy()
@@ -46,7 +45,6 @@ def select_features_correlation(feature_matrix, y, train_mask, k):
     selector.fit(x_train, y_train)
     top_k_indices = selector.get_support(indices=True)
     return np.sort(top_k_indices)
-
 
 def select_features_mutual_info(feature_matrix, y, train_mask, k):
     x_train = feature_matrix[train_mask].cpu().numpy()
