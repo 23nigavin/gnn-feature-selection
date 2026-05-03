@@ -2,3 +2,4 @@ torch
 torch_geometric
 numpy
 scikit-learn
+matplotlib
