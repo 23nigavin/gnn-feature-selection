@@ -57,7 +57,22 @@ def reconstruction_loss(model, x_input, x_target, mask, loss_type="mse"):
         return F.mse_loss(x_hat, x_target[mask])
 
     if loss_type == "bce":
-        return F.binary_cross_entropy_with_logits(x_hat, x_target[mask])
+        target = x_target[mask]
+
+        pos = target.sum(dim=0)
+        neg = target.size(0) - pos
+
+        pos_weight = torch.where(
+            pos > 0,
+            neg / pos.clamp(min=1.0),
+            torch.ones_like(pos),
+        ).clamp(max=50)
+
+        return F.binary_cross_entropy_with_logits(
+            x_hat,
+            target,
+            pos_weight=pos_weight,
+        )
 
     raise ValueError("loss_type must be 'mse' or 'bce'.")
 
