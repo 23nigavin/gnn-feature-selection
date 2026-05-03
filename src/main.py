@@ -1,6 +1,6 @@
 from torch_geometric.datasets import Planetoid
 
-from experiments import run_l1_selection_experiment_avg
+from experiments import run_no_selection_baseline_avg, run_preprocessing_selection_experiment_avg
 from plotting import plot_accuracy_vs_noise, plot_accuracy_vs_k
 
 def main():
@@ -10,23 +10,24 @@ def main():
 
     noise_levels = [0.0, .25, .5, .75, 1.0, 1.25, 1.5]
     noise_percent = [100 * n for n in noise_levels]
-    clean_baseline_acc = run_l1_selection_experiment_avg(dataset, noise_ratio=0.0, use_feature_selection=False, seeds=seeds)    
+
+    clean_baseline_acc = run_no_selection_baseline_avg(dataset, noise_ratio=0.0, seeds=seeds)
+
     noise_no_selection_acc = []
     noise_with_selection_acc = []
 
     for noise_ratio in noise_levels:
-        acc_no_selection = run_l1_selection_experiment_avg(
+        acc_no_selection = run_no_selection_baseline_avg(
             dataset,
             noise_ratio=noise_ratio,
-            use_feature_selection=False,
-            seeds=seeds
+            seeds=seeds,
         )
-        acc_with_selection = run_l1_selection_experiment_avg(
+        acc_with_selection = run_preprocessing_selection_experiment_avg(
             dataset,
             noise_ratio=noise_ratio,
-            use_feature_selection=True,
             k=original_num_features,
-            seeds=seeds
+            selection_method="l1",
+            seeds=seeds,
         )
 
         noise_no_selection_acc.append(acc_no_selection)
@@ -42,22 +43,21 @@ def main():
     k_values = [100, 300, 500, 700, 1000, original_num_features]
     fixed_noise_ratio = 1.0
 
-    corrupted_baseline_acc = run_l1_selection_experiment_avg(
+    corrupted_baseline_acc = run_no_selection_baseline_avg(
         dataset,
         noise_ratio=fixed_noise_ratio,
-        use_feature_selection=False,
-        seeds=seeds
+        seeds=seeds,
     )
 
     k_selection_acc = []
 
     for k in k_values:
-        acc = run_l1_selection_experiment_avg(
+        acc = run_preprocessing_selection_experiment_avg(
             dataset,
             noise_ratio=fixed_noise_ratio,
-            use_feature_selection=True,
             k=k,
-            seeds=seeds
+            selection_method="l1",
+            seeds=seeds,
         )
         k_selection_acc.append(acc)
 
