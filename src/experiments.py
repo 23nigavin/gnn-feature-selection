@@ -113,8 +113,8 @@ def run_preprocessing_selection_experiment_avg(dataset,noise_ratio=1.0,k=None,se
 def run_autoencoder_experiment(
     dataset,
     noise_ratio=1.0,
-    latent_dim=64,
-    ae_hidden_dim=128,
+    latent_dim=256,
+    ae_hidden_dim=512,
     ae_dropout=0.3,
     ae_lr=1e-3,
     ae_weight_decay=1e-4,
@@ -136,20 +136,23 @@ def run_autoencoder_experiment(
     else:
         x_noisy = x_clean
 
+    x_target = x_noisy
+
     ae_model = BetterDenoisingAutoencoder(
         input_dim=x_noisy.shape[1],
         latent_dim=latent_dim,
-        target_dim=x_clean.shape[1],
+        target_dim=x_target.shape[1],
         hidden_dim=ae_hidden_dim,
         dropout=ae_dropout,
     )
 
+    ae_mask = torch.ones_like(graph.train_mask, dtype=torch.bool)
     ae_model, history = train_autoencoder(
         model=ae_model,
         x_input=x_noisy,
-        x_target=x_clean,
-        train_mask=graph.train_mask,
-        val_mask=graph.val_mask,
+        x_target=x_target,
+        train_mask=ae_mask,
+        val_mask=ae_mask,
         lr=ae_lr,
         weight_decay=ae_weight_decay,
         epochs=ae_epochs,
@@ -178,7 +181,7 @@ def run_autoencoder_experiment(
 def run_autoencoder_experiment_avg(
     dataset,
     noise_ratio=1.0,
-    latent_dim=64,
+    latent_dim=256,
     seeds=None,
 ):
     if seeds is None:
