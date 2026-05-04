@@ -3,24 +3,20 @@ import numpy as np
 import torch
 
 from gnn import GCN, train, test
-from noise import add_junk_features
+from noise import apply_noise
 from preprocessing_selection import (select_top_k_features_l1,select_features_permutation,select_features_correlation,select_features_mutual_info)
 from util import aggregate_features
 from autoencoder import BetterDenoisingAutoencoder, train_autoencoder, encode_features
 from pca import apply_pca
 from masked_gnn import MaskedGCN
 
-def run_no_selection_baseline(dataset, noise_ratio=1.0, seed=42):
+def run_no_selection_baseline(dataset, noise_ratio=1.0, noise_type="dense_junk", seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
 
     graph = dataset[0].clone()
     feature_matrix = graph.x
-    _, num_features = feature_matrix.shape
-    num_junk_features = int(num_features * noise_ratio)
-
-    if num_junk_features > 0:
-        feature_matrix = add_junk_features(feature_matrix, num_junk_features)
+    feature_matrix = apply_noise(feature_matrix, noise_type=noise_type, noise_level=noise_ratio)
 
     graph.x = feature_matrix
 
@@ -33,7 +29,7 @@ def run_no_selection_baseline(dataset, noise_ratio=1.0, seed=42):
     accuracy = test(model, graph)
     return accuracy
 
-def run_no_selection_baseline_avg(dataset, noise_ratio=1.0, seeds=None):
+def run_no_selection_baseline_avg(dataset, noise_ratio=1.0, noise_type="dense_junk", seeds=None):
     if seeds is None:
         seeds = [0, 1, 2, 3, 4]
 
@@ -42,6 +38,7 @@ def run_no_selection_baseline_avg(dataset, noise_ratio=1.0, seeds=None):
         acc = run_no_selection_baseline(
             dataset,
             noise_ratio=noise_ratio,
+            noise_type=noise_type,
             seed=seed,
         )
         accuracies.append(acc)
@@ -60,17 +57,14 @@ def get_selection_fn(selection_method):
 
     raise ValueError(f"Unknown selection method: {selection_method}")
 
-def run_preprocessing_selection_experiment(dataset,noise_ratio=1.0,k=None,selection_method="l1",seed=42):
+def run_preprocessing_selection_experiment(dataset,noise_ratio=1.0,noise_type="dense_junk",k=None,selection_method="l1",graph_aware=True,seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
 
     graph = dataset[0].clone()
     feature_matrix = graph.x
     _, num_features = feature_matrix.shape
-    num_junk_features = int(num_features * noise_ratio)
-
-    if num_junk_features > 0:
-        feature_matrix = add_junk_features(feature_matrix, num_junk_features)
+    feature_matrix = apply_noise(feature_matrix, noise_type=noise_type, noise_level=noise_ratio)
 
     graph.x = feature_matrix
 
@@ -79,8 +73,12 @@ def run_preprocessing_selection_experiment(dataset,noise_ratio=1.0,k=None,select
 
     selection_fn = get_selection_fn(selection_method)
 
-    x_agg = aggregate_features(graph.x, graph.edge_index)
-    selected_indices = selection_fn(x_agg, y=graph.y, train_mask=graph.train_mask, k=k)
+    if graph_aware:
+        scoring_features = aggregate_features(graph.x, graph.edge_index)
+    else:
+        scoring_features = graph.x
+
+    selected_indices = selection_fn(scoring_features, y=graph.y, train_mask=graph.train_mask, k=k)
     graph.x = graph.x[:, selected_indices]
 
     model = GCN(num_features=graph.x.shape[1], hidden_dim=16, num_classes=dataset.num_classes)
@@ -93,7 +91,7 @@ def run_preprocessing_selection_experiment(dataset,noise_ratio=1.0,k=None,select
     return accuracy
 
 
-def run_preprocessing_selection_experiment_avg(dataset,noise_ratio=1.0,k=None,selection_method="l1",seeds=None):
+def run_preprocessing_selection_experiment_avg(dataset,noise_ratio=1.0,noise_type="dense_junk",k=None,selection_method="l1",graph_aware=True,seeds=None):
     if seeds is None:
         seeds = [0, 1, 2, 3, 4]
 
@@ -102,8 +100,10 @@ def run_preprocessing_selection_experiment_avg(dataset,noise_ratio=1.0,k=None,se
         acc = run_preprocessing_selection_experiment(
             dataset,
             noise_ratio=noise_ratio,
+            noise_type=noise_type,
             k=k,
             selection_method=selection_method,
+            graph_aware=graph_aware,
             seed=seed,
         )
         accuracies.append(acc)
@@ -113,6 +113,7 @@ def run_preprocessing_selection_experiment_avg(dataset,noise_ratio=1.0,k=None,se
 def run_autoencoder_experiment(
     dataset,
     noise_ratio=1.0,
+    noise_type="dense_junk",
     latent_dim=256,
     ae_hidden_dim=512,
     ae_dropout=0.3,
@@ -128,14 +129,7 @@ def run_autoencoder_experiment(
     graph = dataset[0].clone()
 
     x_clean = graph.x
-    _, num_features = x_clean.shape
-    num_junk_features = int(num_features * noise_ratio)
-
-    if num_junk_features > 0:
-        x_noisy = add_junk_features(x_clean, num_junk_features)
-    else:
-        x_noisy = x_clean
-
+    x_noisy = apply_noise(x_clean, noise_type=noise_type, noise_level=noise_ratio)
     x_target = x_noisy
 
     ae_model = BetterDenoisingAutoencoder(
@@ -181,6 +175,7 @@ def run_autoencoder_experiment(
 def run_autoencoder_experiment_avg(
     dataset,
     noise_ratio=1.0,
+    noise_type="dense_junk",
     latent_dim=256,
     seeds=None,
 ):
@@ -192,6 +187,7 @@ def run_autoencoder_experiment_avg(
         acc = run_autoencoder_experiment(
             dataset,
             noise_ratio=noise_ratio,
+            noise_type=noise_type,
             latent_dim=latent_dim,
             seed=seed,
         )
@@ -199,18 +195,12 @@ def run_autoencoder_experiment_avg(
 
     return float(np.mean(accuracies))
 
-def run_pca_experiment(dataset, noise_ratio=1.0, n_components=64, seed=42):
+def run_pca_experiment(dataset, noise_ratio=1.0, noise_type="dense_junk", n_components=64, seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
     graph = dataset[0].clone()
     x_clean = graph.x
-    _, num_features = x_clean.shape
-    num_junk_features = int(num_features * noise_ratio)
-
-    if num_junk_features > 0:
-        x_noisy = add_junk_features(x_clean, num_junk_features)
-    else:
-        x_noisy = x_clean
+    x_noisy = apply_noise(x_clean, noise_type=noise_type, noise_level=noise_ratio)
 
     x_pca = apply_pca(feature_matrix=x_noisy, train_mask=graph.train_mask, n_components=n_components)
     graph.x = x_pca
@@ -223,7 +213,7 @@ def run_pca_experiment(dataset, noise_ratio=1.0, n_components=64, seed=42):
     accuracy = test(model, graph)
     return accuracy
 
-def run_pca_experiment_avg(dataset, noise_ratio=1.0, n_components=64,seeds=None):
+def run_pca_experiment_avg(dataset, noise_ratio=1.0, noise_type="dense_junk", n_components=64,seeds=None):
     if seeds is None:
         seeds = [0, 1, 2, 3, 4]
 
@@ -232,6 +222,7 @@ def run_pca_experiment_avg(dataset, noise_ratio=1.0, n_components=64,seeds=None)
         acc = run_pca_experiment(
             dataset,
             noise_ratio=noise_ratio,
+            noise_type=noise_type,
             n_components=n_components,
             seed=seed,
         )
@@ -239,7 +230,7 @@ def run_pca_experiment_avg(dataset, noise_ratio=1.0, n_components=64,seeds=None)
 
     return float(np.mean(accuracies))
 
-def run_learned_mask_experiment(dataset, noise_ratio=1.0, mask_lambda=0.0, k=None, seed=42):
+def run_learned_mask_experiment(dataset, noise_ratio=1.0, noise_type="dense_junk", mask_lambda=0.0, k=None, seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
     graph = dataset[0].clone()
@@ -247,10 +238,8 @@ def run_learned_mask_experiment(dataset, noise_ratio=1.0, mask_lambda=0.0, k=Non
     _, num_features = feature_matrix.shape
     if k is None:
         k = num_features
-    num_junk_features = int(num_features * noise_ratio)
 
-    if num_junk_features > 0:
-        feature_matrix = add_junk_features(feature_matrix, num_junk_features)
+    feature_matrix = apply_noise(feature_matrix, noise_type=noise_type, noise_level=noise_ratio)
 
     graph.x = feature_matrix
     model = MaskedGCN(num_features=graph.x.shape[1], hidden_dim=16, num_classes=dataset.num_classes, k=k)
@@ -275,7 +264,7 @@ def run_learned_mask_experiment(dataset, noise_ratio=1.0, mask_lambda=0.0, k=Non
     return accuracy
 
 
-def run_learned_mask_experiment_avg(dataset, noise_ratio=1.0, mask_lambda=0.0, k=None, seeds=None):
+def run_learned_mask_experiment_avg(dataset, noise_ratio=1.0, noise_type="dense_junk", mask_lambda=0.0, k=None, seeds=None):
     if seeds is None:
         seeds = [0, 1, 2, 3, 4]
 
@@ -284,6 +273,7 @@ def run_learned_mask_experiment_avg(dataset, noise_ratio=1.0, mask_lambda=0.0, k
         acc = run_learned_mask_experiment(
             dataset,
             noise_ratio=noise_ratio,
+            noise_type=noise_type,
             mask_lambda=mask_lambda,
             k=k,
             seed=seed,
