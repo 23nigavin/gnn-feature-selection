@@ -1,18 +1,17 @@
 # Functions for plotting results
 import matplotlib.pyplot as plt
 
-def plot_accuracy_vs_noise(noise_percent, clean_baseline_acc, noise_no_selection_acc, noise_with_selection_acc):
+def plot_method_accuracy_vs_noise(noise_percent, results_by_method, filename="accuracy_vs_noise_all_methods.png"):
     plt.figure(figsize=(8, 5))
-    plt.plot(noise_percent, [clean_baseline_acc] * len(noise_percent), marker='o', label='No noise, no feature selection')
-    plt.plot(noise_percent, noise_no_selection_acc, marker='o', label='With noise, no feature selection')
-    plt.plot(noise_percent, noise_with_selection_acc, marker='o', label='With noise, with feature selection')
+    for method_name, accuracies in results_by_method.items():
+        plt.plot(noise_percent, accuracies, marker="o", label=method_name)
     plt.xlabel("Extra junk features added (% of original feature count)")
     plt.ylabel("Test accuracy")
     plt.title("Accuracy vs. noise level")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("accuracy_vs_noise.png")
+    plt.savefig(filename)
     plt.show()
 
 def plot_accuracy_vs_k(k_values, clean_baseline_acc, corrupted_baseline_acc, k_selection_acc):

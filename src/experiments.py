@@ -198,3 +198,96 @@ def run_autoencoder_experiment_avg(
         accuracies.append(acc)
 
     return float(np.mean(accuracies))
+
+def run_pca_experiment(dataset, noise_ratio=1.0, n_components=64, seed=42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    graph = dataset[0].clone()
+    x_clean = graph.x
+    _, num_features = x_clean.shape
+    num_junk_features = int(num_features * noise_ratio)
+
+    if num_junk_features > 0:
+        x_noisy = add_junk_features(x_clean, num_junk_features)
+    else:
+        x_noisy = x_clean
+
+    x_pca = apply_pca(feature_matrix=x_noisy, train_mask=graph.train_mask, n_components=n_components)
+    graph.x = x_pca
+    model = GCN(num_features=graph.x.shape[1], hidden_dim=16, num_classes=dataset.num_classes)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+    for epoch in range(1, 201):
+        train(model, graph, optimizer)
+
+    accuracy = test(model, graph)
+    return accuracy
+
+def run_pca_experiment_avg(dataset, noise_ratio=1.0, n_components=64,seeds=None):
+    if seeds is None:
+        seeds = [0, 1, 2, 3, 4]
+
+    accuracies = []
+    for seed in seeds:
+        acc = run_pca_experiment(
+            dataset,
+            noise_ratio=noise_ratio,
+            n_components=n_components,
+            seed=seed,
+        )
+        accuracies.append(acc)
+
+    return float(np.mean(accuracies))
+
+def run_learned_mask_experiment(dataset, noise_ratio=1.0, mask_lambda=0.0, k=None, seed=42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    graph = dataset[0].clone()
+    feature_matrix = graph.x
+    _, num_features = feature_matrix.shape
+    if k is None:
+        k = num_features
+    num_junk_features = int(num_features * noise_ratio)
+
+    if num_junk_features > 0:
+        feature_matrix = add_junk_features(feature_matrix, num_junk_features)
+
+    graph.x = feature_matrix
+    model = MaskedGCN(num_features=graph.x.shape[1], hidden_dim=16, num_classes=dataset.num_classes, k=k)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+    for epoch in range(1, 201):
+        model.train()
+        optimizer.zero_grad()
+
+        out = model(graph.x, graph.edge_index)
+        classification_loss = torch.nn.functional.cross_entropy(
+            out[graph.train_mask],
+            graph.y[graph.train_mask],
+        )
+
+        mask_penalty = model.mask_l1_penalty()
+        loss = classification_loss + mask_lambda * mask_penalty
+        loss.backward()
+        optimizer.step()
+
+    accuracy = test(model, graph)
+    return accuracy
+
+
+def run_learned_mask_experiment_avg(dataset, noise_ratio=1.0, mask_lambda=0.0, k=None, seeds=None):
+    if seeds is None:
+        seeds = [0, 1, 2, 3, 4]
+
+    accuracies = []
+    for seed in seeds:
+        acc = run_learned_mask_experiment(
+            dataset,
+            noise_ratio=noise_ratio,
+            mask_lambda=mask_lambda,
+            k=k,
+            seed=seed,
+        )
+        accuracies.append(acc)
+
+    return float(np.mean(accuracies))
