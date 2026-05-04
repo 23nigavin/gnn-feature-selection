@@ -1,6 +1,6 @@
 # GNN Feature Selection
 
-This repository explores how graph neural networks behave when node features are flooded with irrelevant or misleading dimensions. The main experiments use the Cora citation graph and compare a baseline GCN against preprocessing approaches such as graph-aware feature selection and denoising autoencoder embeddings.
+This repository explores how graph neural networks behave when node features are flooded with irrelevant or misleading dimensions. The main experiments use the Cora citation graph and compare a baseline GCN against preprocessing approaches such as graph-aware feature selection, PCA, autoencoder embeddings, and a simplified learned feature mask.
 
 The project also includes a binary synthetic graph generator for testing specific assumptions, such as weak feature-label correlation, homophily strength, sparse useful features, and train-only spurious features.
 
@@ -12,10 +12,13 @@ The project also includes a binary synthetic graph generator for testing specifi
 ├── requirements.txt
 └── src
     ├── main.py                    # Main Cora experiment script
+    ├── synthetic_experiments.py   # Synthetic scenario experiment script
     ├── experiments.py             # Experiment runners for GCN, feature selection, and autoencoder baselines
     ├── gnn.py                     # Two-layer GCN model plus train/test helpers
     ├── preprocessing_selection.py # Feature-selection methods
-    ├── autoencoder.py             # Denoising autoencoder model and training helpers
+    ├── autoencoder.py             # Plain autoencoder model and training helpers
+    ├── pca.py                     # Transductive unsupervised PCA helper
+    ├── masked_gnn.py              # Simplified top-k learned mask baseline
     ├── noise.py                   # Junk-feature corruption helper
     ├── util.py                    # Graph feature aggregation helper
     ├── plotting.py                # Plotting functions for accuracy curves
@@ -40,16 +43,27 @@ From the repository root:
 python src/main.py
 ```
 
-This loads the Cora dataset through PyTorch Geometric, adds different amounts of binary junk features, and compares:
+This loads the Cora dataset through PyTorch Geometric and runs noise sweeps. The most important experiment is the **dense junk** setting, because it most directly tests the original hypothesis: whether graph-aware feature selection is robust when many irrelevant feature dimensions are appended.
 
-- GCN on clean features
-- GCN on noisy/junk-augmented features
-- GCN after L1-based graph-aware feature selection
+The main script compares:
+
+- GCN on noisy features with no feature selection
+- raw L1 feature selection
+- graph-aware L1 feature selection
+- raw mutual information feature selection
+- graph-aware mutual information feature selection
+- PCA embeddings
+- autoencoder embeddings
+- simplified learned top-k feature mask
 
 The script produces accuracy curves for:
 
-- accuracy vs. junk-feature noise level
+- accuracy vs. noise level for dense junk, feature dropout, and bit flip
 - accuracy vs. number of selected features `k`
+
+The dense-junk graph should be emphasized in writeups. Feature dropout and bit flip are useful extensions/controls.
+
+Results saved by `src/main.py` are reported as mean +- standard deviation over 3 random seeds.
 
 ## Core Components
 
@@ -75,14 +89,12 @@ These dimensions are intended to be irrelevant, so accuracy should drop if the m
 
 ### Graph-Aware Feature Selection
 
-`src/preprocessing_selection.py` contains several feature-selection methods:
+`src/preprocessing_selection.py` contains feature-selection methods:
 
 - `select_top_k_features_l1`
-- `select_features_permutation`
-- `select_features_correlation`
 - `select_features_mutual_info`
 
-The main Cora experiment currently uses L1 logistic regression after graph feature aggregation. Aggregation happens in `src/util.py`:
+The main Cora experiment compares raw and graph-aware versions of these selectors. Graph-aware selection first aggregates node features over the graph, then scores features using only the training labels. Aggregation happens in `src/util.py`:
 
 ```python
 aggregate_features(x, edge_index)
@@ -90,17 +102,23 @@ aggregate_features(x, edge_index)
 
 This means feature selection can score features using local graph context, not just each node's raw feature vector.
 
-### Autoencoder Baseline
+The main noise sweeps use `k=256` for feature-selection methods and for the dimensionality of PCA/autoencoder baselines.
 
-`src/autoencoder.py` defines `BetterDenoisingAutoencoder`, a vanilla MLP denoising autoencoder.
+### PCA and Autoencoder Baselines
+
+PCA and autoencoder are unsupervised transductive baselines. They are fit using **all nodes**, but they do not use labels.
+
+`src/pca.py` fits PCA on the full noisy feature matrix.
+
+`src/autoencoder.py` defines `BetterDenoisingAutoencoder`, a vanilla MLP autoencoder. The class name is historical; in the current experiments the autoencoder is **not denoising**. It reconstructs the noisy/junk-augmented feature matrix and then passes the latent representation to the downstream GCN.
 
 The intended pipeline is:
 
 ```text
-clean node features
-    -> append junk features
-    -> train autoencoder to reconstruct clean features
-    -> encode noisy features into latent z
+node features
+    -> apply noise/corruption
+    -> train autoencoder to reconstruct the same noisy/corrupted features
+    -> encode features into latent z
     -> train GCN on z
 ```
 
@@ -109,11 +127,9 @@ The autoencoder supports:
 - MSE reconstruction loss for continuous features
 - BCE-with-logits reconstruction loss for binary features
 
-Use BCE for binary synthetic features:
+### Learned Mask Baseline
 
-```python
-run_autoencoder_experiment_avg(dataset, reconstruction_loss_type="bce")
-```
+`src/masked_gnn.py` defines a simplified learned mask baseline. It is not a direct implementation of a specific paper. It learns one mask logit per feature, keeps the top-k entries, and trains a GCN on the masked feature matrix.
 
 ## Synthetic Data
 
@@ -140,43 +156,52 @@ train_only_spurious
 anti_spurious_test
 ```
 
+To run the predefined synthetic scenario sweep:
+
+```bash
+python src/synthetic_experiments.py
+```
+
+This evaluates a small set of methods on several synthetic assumptions:
+
+- no feature selection
+- raw L1 feature selection
+- graph-aware L1 feature selection
+- raw mutual information feature selection
+- graph-aware mutual information feature selection
+- autoencoder embeddings
+
+The script writes a CSV named `synthetic_results.csv`.
+The synthetic script also records feature-recovery metrics for feature-selection methods, such as how many selected columns came from true signal, junk, or spurious feature groups.
+
 Example:
 
 ```python
 from synthetic_data import make_scenario
-from experiments import run_l1_selection_experiment_avg
+from experiments import run_preprocessing_selection_experiment_avg
 
 dataset = make_scenario("weak_features_strong_graph", seed=0)
 
-acc = run_l1_selection_experiment_avg(
+mean_acc, std_acc = run_preprocessing_selection_experiment_avg(
     dataset,
     noise_ratio=0.0,
-    use_feature_selection=True,
-    k=dataset[0].x.shape[1],
-    seeds=[0, 1, 2, 3, 4],
+    noise_type="dense_junk",
+    k=256,
+    selection_method="l1",
+    graph_aware=True,
+    seeds=[0, 1, 2],
 )
 
-print(acc)
+print(mean_acc, std_acc)
 ```
 
 When importing from an interactive session, make sure `src/` is on your Python path, or run from inside `src/`.
-
-## Experiment Runners
-
-`src/experiments.py` provides reusable experiment functions:
-
-- `run_l1_selection_experiment`
-- `run_l1_selection_experiment_avg`
-- `run_autoencoder_experiment`
-- `run_autoencoder_experiment_avg`
-- `run_graph_autoencoder_experiment`
-- `run_graph_autoencoder_experiment_avg`
-
-The `_avg` variants run multiple seeds and return mean test accuracy.
 
 ## Notes
 
 - The main script uses Cora from `torch_geometric.datasets.Planetoid`.
 - PyTorch Geometric downloads dataset files into `data/Planetoid`.
-- The current feature-selection experiment uses graph-aggregated features for selection, then trains the GCN on the selected original feature columns.
+- Supervised feature-selection methods use only training labels.
+- PCA and autoencoder are unsupervised transductive methods fit on all nodes.
+- The learned mask baseline is a simplified top-k mask baseline, not a paper reproduction.
 - The synthetic dataset stores metadata such as `data.feature_groups`, `data.useful_signal_by_class`, and `data.assumptions` to help evaluate whether feature selection is choosing true signal or junk/spurious dimensions.

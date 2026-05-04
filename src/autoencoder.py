@@ -5,7 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class BetterDenoisingAutoencoder(nn.Module):
-    """Fully connected autoencoder for node-feature reconstruction.
+    """
+    
+    Fully connected autoencoder for node-feature reconstruction.
 
     The model itself is a vanilla MLP autoencoder. It becomes "denoising" when
     training passes noisy/junk-augmented features as input and clean features as
@@ -45,7 +47,8 @@ class BetterDenoisingAutoencoder(nn.Module):
 
 
 def reconstruction_loss(model, x_input, x_target, mask, loss_type="mse"):
-    """Compute reconstruction loss on the nodes selected by a boolean mask.
+    """
+    Compute reconstruction loss on the nodes selected by a boolean mask.
 
     Use MSE for continuous features and BCE-with-logits for binary features.
     The decoder returns raw values/logits; no sigmoid is applied inside the model.
@@ -95,8 +98,8 @@ def train_autoencoder(
     Args:
         model: Autoencoder model to train.
         x_input: Input feature matrix. This may be clean, noisy, or junk-augmented.
-        x_target: Reconstruction target. Use x_input for a plain autoencoder and
-            clean features for a denoising autoencoder.
+        x_target: Reconstruction target. In the current experiments this is the 
+                  same noisy/junk-augmented matrix as x_input, so the AE is not denoising.
         train_mask: Boolean mask selecting nodes used for gradient updates.
         val_mask: Boolean mask selecting nodes used for early stopping.
         lr: Adam learning rate.

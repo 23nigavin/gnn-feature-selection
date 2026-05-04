@@ -4,6 +4,14 @@ from gnn import GCN
 
 
 class MaskedGCN(nn.Module):
+    """
+    Simplified learned feature-mask baseline.
+
+    This is not intended to be a direct implementation of a specific paper.
+    It learns one mask logit per feature, keeps the top-k mask entries in the
+    forward pass, and trains the GCN with that masked feature matrix.
+    """
+
     def __init__(self, num_features, hidden_dim, num_classes, dropout=0.5, k=None):
         super().__init__()
 

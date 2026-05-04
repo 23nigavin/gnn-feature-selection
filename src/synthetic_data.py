@@ -16,7 +16,7 @@ class SyntheticGraphConfig:
     random junk features, and misleading train-only features.
     """
 
-    # Basic dataset size
+    # Basic dataset size we created for experiments.
     num_classes: int = 3
     nodes_per_class: int = 100
 
@@ -29,8 +29,6 @@ class SyntheticGraphConfig:
 
     # True signal features:
     # These are binary features that are actually related to the class label.
-    # signal_delta controls how strong the relationship is.
-    # Small delta = weak feature-label correlation.
     num_signal_features: int = 9
     signal_base_prob: float = 0.5
     signal_delta: float = 0.15
@@ -44,7 +42,6 @@ class SyntheticGraphConfig:
     num_junk_features: int = 100
     junk_prob: float = 0.5
 
-    # Spurious features:
     # These features are correlated with the labels only on the training nodes.
     # This tests whether the model is learning a real signal or a shortcut.
     num_spurious_features: int = 0
@@ -64,57 +61,52 @@ class SyntheticGraphConfig:
 
 
 # These are the main synthetic settings we use in experiments.
-# Each scenario tests a different assumption about when graph-aware feature
-# selection should help.
+# Each scenario tests a different assumption about when graph-aware feature selection should help.
 SCENARIOS: Dict[str, SyntheticGraphConfig] = {
-    # Easy case: graph is very homophilous and features are strong.
+    # Simple case: graph is very homophilous and features are strong.
     "easy_homophily": SyntheticGraphConfig(
         p_in=0.10,
         p_out=0.005,
         num_signal_features=12,
         signal_delta=0.30,
-        num_junk_features=60,
+        num_junk_features=500,
     ),
 
     # Useful features are weak, but the graph structure is strong.
-    # A graph-aware method should be especially helpful here.
     "weak_features_strong_graph": SyntheticGraphConfig(
         p_in=0.10,
         p_out=0.005,
         num_signal_features=9,
         signal_delta=0.08,
-        num_junk_features=150,
+        num_junk_features=500,
     ),
 
     # Features are strong, but the graph has weak homophily.
-    # Here, the graph structure may not help as much.
     "weak_graph_strong_features": SyntheticGraphConfig(
         p_in=0.04,
         p_out=0.03,
         num_signal_features=9,
         signal_delta=0.30,
-        num_junk_features=150,
+        num_junk_features=500,
     ),
 
     # Only a few features are truly useful.
-    # This tests whether feature selection can find sparse signal.
     "few_signal_features": SyntheticGraphConfig(
         p_in=0.08,
         p_out=0.01,
         num_signal_features=3,
         signal_delta=0.20,
-        num_junk_features=250,
+        num_junk_features=500,
     ),
 
     # Only one class has useful signal features.
-    # This tests a partial-signal setting.
     "partial_class_signal": SyntheticGraphConfig(
         p_in=0.10,
         p_out=0.005,
         num_signal_features=6,
         signal_delta=0.25,
         signal_classes=(0,),
-        num_junk_features=150,
+        num_junk_features=500,
     ),
 
     # Spurious features work on train nodes but become random on non-train nodes.
@@ -123,7 +115,7 @@ SCENARIOS: Dict[str, SyntheticGraphConfig] = {
         p_out=0.01,
         num_signal_features=6,
         signal_delta=0.12,
-        num_junk_features=100,
+        num_junk_features=500,
         num_spurious_features=30,
         spurious_train_delta=0.48,
         spurious_test_mode="random",
@@ -135,7 +127,7 @@ SCENARIOS: Dict[str, SyntheticGraphConfig] = {
         p_out=0.01,
         num_signal_features=6,
         signal_delta=0.12,
-        num_junk_features=100,
+        num_junk_features=500,
         num_spurious_features=30,
         spurious_train_delta=0.48,
         spurious_test_mode="anti",
@@ -145,7 +137,7 @@ SCENARIOS: Dict[str, SyntheticGraphConfig] = {
 
 class SyntheticDataset:
     """
-    Small wrapper so the synthetic graph acts like a PyTorch Geometric dataset.
+    Small wrapper to ensure that the synthetic graph acts like a PyTorch Geometric dataset.
 
     This dataset only contains one graph, so dataset[0] returns the graph.
     """
@@ -174,17 +166,11 @@ def make_binary_class_features(
     rng: np.random.Generator,
 ):
     """
-    Create binary features that are weakly or strongly correlated with labels.
+    Creates binary features that are weakly or strongly correlated with labels, where: 
 
-    The idea:
     - Each feature is assigned to one class.
     - Nodes from that class are more likely to have the feature equal to 1.
     - Nodes from other classes are less likely to have the feature equal to 1.
-
-    Example:
-    If base_prob = 0.5 and delta = 0.15:
-        owning class:     P(feature = 1) = 0.65
-        non-owning class: P(feature = 1) = 0.35
 
     This keeps the features binary instead of Gaussian.
     """
@@ -207,11 +193,6 @@ def make_binary_class_features(
 
     for feature_idx in range(num_features):
         # Assign features evenly across classes.
-        # Example with 3 classes:
-        # feature 0 -> class 0
-        # feature 1 -> class 1
-        # feature 2 -> class 2
-        # feature 3 -> class 0
         owner_class = feature_idx % num_classes
 
         # If this class is not supposed to have signal, make the feature random.
@@ -234,7 +215,7 @@ def make_synthetic_graph_data(
     config: SyntheticGraphConfig = SyntheticGraphConfig(),
 ) -> Data:
     """
-    Create one synthetic PyTorch Geometric graph.
+    Creates one synthetic PyTorch Geometric graph.
 
     The final graph has:
     - node features: data.x
@@ -248,13 +229,9 @@ def make_synthetic_graph_data(
     torch.manual_seed(config.seed)
 
     # Create node labels
-    # Labels are grouped by class.
-    # Example for 3 classes and 100 nodes per class:
-    # [0, 0, ..., 0, 1, 1, ..., 1, 2, 2, ..., 2]
     labels = np.repeat(np.arange(config.num_classes), config.nodes_per_class)
     num_nodes = len(labels)
 
-    # Create train, validation, and test masks
     # We sample the same number of train/val nodes from each class.
     train_mask = np.zeros(num_nodes, dtype=bool)
     val_mask = np.zeros(num_nodes, dtype=bool)
@@ -280,10 +257,7 @@ def make_synthetic_graph_data(
     val_mask_t = torch.tensor(val_mask, dtype=torch.bool)
     test_mask_t = torch.tensor(test_mask, dtype=torch.bool)
 
-    # Create graph edges
-    # This is a simple homophily-based graph.
-    # Same-label node pairs connect with probability p_in.
-    # Different-label node pairs connect with probability p_out.
+    # Create graph edges with a simple homophily-based model
     src = []
     dst = []
 
@@ -305,7 +279,6 @@ def make_synthetic_graph_data(
     edge_index = torch.tensor([src, dst], dtype=torch.long)
 
     # Create true signal features
-    # These are the features we want a good feature-selection method to find.
     x_signal, useful_signal_by_class = make_binary_class_features(
         labels=labels,
         num_features=config.num_signal_features,
@@ -317,7 +290,6 @@ def make_synthetic_graph_data(
     )
 
     # Create junk features
-    # These features are completely random and should not be useful.
     x_junk = rng.binomial(
         1,
         config.junk_prob,
@@ -326,10 +298,7 @@ def make_synthetic_graph_data(
 
     # Create spurious features
     # These features look useful on the training nodes.
-    # However, they do not generalize to validation/test nodes.
-    #
-    # This is meant to test whether the model learns real graph-aware signal
-    # or just memorizes shortcuts from the training set.
+    # However, they do not generalize to validation/test nodes. We want to test whether the model learns real graph-aware signal or just memorizes shortcuts from the training set.
     x_spurious, spurious_by_class = make_binary_class_features(
         labels=labels,
         num_features=config.num_spurious_features,
@@ -359,9 +328,7 @@ def make_synthetic_graph_data(
         else:
             raise ValueError("spurious_test_mode must be 'random' or 'anti'.")
 
-    # Combine all feature groups
-    # Feature order:
-    # [signal features | junk features | spurious features]
+    # Combine all feature groups into one feature matrix
     x_clean = np.concatenate([x_signal, x_junk, x_spurious], axis=1)
 
     # Make a copy that we can optionally corrupt.
@@ -393,7 +360,6 @@ def make_synthetic_graph_data(
     )
 
     # Store which columns belong to each feature type.
-    # This is useful for checking whether feature selection picked the right features.
     data.feature_groups = {
         "signal": list(range(0, signal_end)),
         "junk": list(range(signal_end, junk_end)),
