@@ -48,10 +48,6 @@ def run_no_selection_baseline_avg(dataset, noise_ratio=1.0, noise_type="dense_ju
 def get_selection_fn(selection_method):
     if selection_method == "l1":
         return select_top_k_features_l1
-    if selection_method == "permutation":
-        return select_features_permutation
-    if selection_method == "correlation":
-        return select_features_correlation
     if selection_method == "mutual_info":
         return select_features_mutual_info
 
