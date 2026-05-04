@@ -1,14 +1,14 @@
 # Functions for plotting results
 import matplotlib.pyplot as plt
 
-def plot_method_accuracy_vs_noise(noise_percent, results_by_method, filename="accuracy_vs_noise_all_methods.png"):
-    plt.figure(figsize=(8, 5))
+def plot_method_accuracy_vs_noise(noise_percent, results_by_method, filename="accuracy_vs_noise_all_methods.png", title="Accuracy vs. noise level"):
+    plt.figure(figsize=(10, 6))
     for method_name, accuracies in results_by_method.items():
         plt.plot(noise_percent, accuracies, marker="o", label=method_name)
-    plt.xlabel("Extra junk features added (% of original feature count)")
+    plt.xlabel("Noise level (%)")
     plt.ylabel("Test accuracy")
-    plt.title("Accuracy vs. noise level")
-    plt.legend()
+    plt.title(title)
+    plt.legend(fontsize=8)
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(filename)
