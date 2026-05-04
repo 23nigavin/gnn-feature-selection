@@ -1,10 +1,13 @@
 # Functions for plotting results
 import matplotlib.pyplot as plt
 
-def plot_method_accuracy_vs_noise(noise_percent, results_by_method, filename="accuracy_vs_noise_all_methods.png", title="Accuracy vs. noise level"):
+def plot_method_accuracy_vs_noise(noise_percent, results_by_method, std_by_method=None, filename="accuracy_vs_noise_all_methods.png", title="Accuracy vs. noise level"):
     plt.figure(figsize=(10, 6))
     for method_name, accuracies in results_by_method.items():
-        plt.plot(noise_percent, accuracies, marker="o", label=method_name)
+        if std_by_method is None:
+            plt.plot(noise_percent, accuracies, marker="o", label=method_name)
+        else:
+            plt.errorbar(noise_percent, accuracies, yerr=std_by_method[method_name], marker="o", capsize=3, label=method_name)
     plt.xlabel("Noise level (%)")
     plt.ylabel("Test accuracy")
     plt.title(title)

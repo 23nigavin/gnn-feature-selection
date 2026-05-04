@@ -10,6 +10,9 @@ from autoencoder import BetterDenoisingAutoencoder, train_autoencoder, encode_fe
 from pca import apply_pca
 from masked_gnn import MaskedGCN
 
+def mean_std(accuracies):
+    return float(np.mean(accuracies)), float(np.std(accuracies))
+
 def run_no_selection_baseline(dataset, noise_ratio=1.0, noise_type="dense_junk", seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -43,7 +46,7 @@ def run_no_selection_baseline_avg(dataset, noise_ratio=1.0, noise_type="dense_ju
         )
         accuracies.append(acc)
 
-    return float(np.mean(accuracies))
+    return mean_std(accuracies)
 
 def get_selection_fn(selection_method):
     if selection_method == "l1":
@@ -53,7 +56,7 @@ def get_selection_fn(selection_method):
 
     raise ValueError(f"Unknown selection method: {selection_method}")
 
-def run_preprocessing_selection_experiment(dataset,noise_ratio=1.0,noise_type="dense_junk",k=None,selection_method="l1",graph_aware=True,seed=42):
+def run_preprocessing_selection_experiment(dataset, noise_ratio=1.0, noise_type="dense_junk", k=None, selection_method="l1", graph_aware=True, seed=42):
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -86,8 +89,7 @@ def run_preprocessing_selection_experiment(dataset,noise_ratio=1.0,noise_type="d
     accuracy = test(model, graph)
     return accuracy
 
-
-def run_preprocessing_selection_experiment_avg(dataset,noise_ratio=1.0,noise_type="dense_junk",k=None,selection_method="l1",graph_aware=True,seeds=None):
+def run_preprocessing_selection_experiment_avg(dataset, noise_ratio=1.0, noise_type="dense_junk", k=None, selection_method="l1", graph_aware=True, seeds=None):
     if seeds is None:
         seeds = [0, 1, 2, 3, 4]
 
@@ -104,7 +106,7 @@ def run_preprocessing_selection_experiment_avg(dataset,noise_ratio=1.0,noise_typ
         )
         accuracies.append(acc)
 
-    return float(np.mean(accuracies))
+    return mean_std(accuracies)
 
 def run_autoencoder_experiment(
     dataset,
@@ -189,7 +191,7 @@ def run_autoencoder_experiment_avg(
         )
         accuracies.append(acc)
 
-    return float(np.mean(accuracies))
+    return mean_std(accuracies)
 
 def run_pca_experiment(dataset, noise_ratio=1.0, noise_type="dense_junk", n_components=64, seed=42):
     torch.manual_seed(seed)
@@ -209,7 +211,7 @@ def run_pca_experiment(dataset, noise_ratio=1.0, noise_type="dense_junk", n_comp
     accuracy = test(model, graph)
     return accuracy
 
-def run_pca_experiment_avg(dataset, noise_ratio=1.0, noise_type="dense_junk", n_components=64,seeds=None):
+def run_pca_experiment_avg(dataset, noise_ratio=1.0, noise_type="dense_junk", n_components=64, seeds=None):
     if seeds is None:
         seeds = [0, 1, 2, 3, 4]
 
@@ -224,7 +226,7 @@ def run_pca_experiment_avg(dataset, noise_ratio=1.0, noise_type="dense_junk", n_
         )
         accuracies.append(acc)
 
-    return float(np.mean(accuracies))
+    return mean_std(accuracies)
 
 def run_learned_mask_experiment(dataset, noise_ratio=1.0, noise_type="dense_junk", mask_lambda=0.0, k=None, seed=42):
     torch.manual_seed(seed)
@@ -276,4 +278,4 @@ def run_learned_mask_experiment_avg(dataset, noise_ratio=1.0, noise_type="dense_
         )
         accuracies.append(acc)
 
-    return float(np.mean(accuracies))
+    return mean_std(accuracies)
