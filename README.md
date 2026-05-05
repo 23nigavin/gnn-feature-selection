@@ -22,10 +22,12 @@ The project also includes a binary synthetic graph generator for testing specifi
     ├── noise.py                   # Junk-feature corruption helper
     ├── util.py                    # Graph feature aggregation helper
     ├── plotting.py                # Plotting functions for accuracy curves
+    ├── make_results_table.py      # Combines main result CSVs into a text table and aggregate plot
+    ├── synthetic_visualizations.py # Plotting helpers for synthetic experiment results
     └── synthetic_data.py          # Binary synthetic graph dataset generator
 ```
 
-Generated outputs such as `.png` plots and `.csv` result files may also appear under `src/` after experiments are run.
+Generated outputs such as `.png` plots, `.csv` result files, and `.txt` summary tables may also appear under `src/` after experiments are run.
 
 ## Setup
 
@@ -64,6 +66,25 @@ The script produces accuracy curves for:
 The dense-junk graph should be emphasized in writeups. Feature dropout and bit flip are useful extensions/controls.
 
 Results saved by `src/main.py` are reported as mean +- standard deviation over 3 random seeds.
+
+## Creating Summary Tables and Aggregate Plots
+
+After running the main experiment, generate a combined text table and aggregate average-accuracy plot with:
+
+```bash
+python src/make_results_table.py
+```
+
+This reads the three main result CSV files:
+
+- `src/results_dense_junk.csv`
+- `src/results_feature_dropout.csv`
+- `src/results_bit_flip.csv`
+
+and writes:
+
+- `src/accuracy_results_table.txt`
+- `src/average_accuracy_across_noise_settings.png`
 
 ## Core Components
 
