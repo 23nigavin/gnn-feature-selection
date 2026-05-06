@@ -27,7 +27,7 @@ As a future-work extension, we also started building a binary synthetic graph ge
     └── synthetic_data.py          # Future-work binary synthetic graph dataset generator
 ```
 
-Generated outputs such as `.png` plots, `.csv` result files, and `.txt` summary tables may also appear under `src/` after experiments are run.
+Generated outputs such as `.png` plots, `.csv` result files, and `.txt` summary tables may also appear after experiments are run.
 
 ## Setup
 
@@ -39,10 +39,11 @@ pip install -r requirements.txt
 
 ## Running the Main Experiment
 
-From the repository root:
+The main script writes result files relative to the directory where it is run. To keep the generated CSVs and plots with the rest of the project outputs, run it from inside `src/`:
 
 ```bash
-python src/main.py
+cd src
+python main.py
 ```
 
 This loads the Cora dataset through PyTorch Geometric and runs noise sweeps. The most important experiment is the **dense junk** setting, because it most directly tests the original hypothesis: whether graph-aware feature selection is robust when many irrelevant feature dimensions are appended.
@@ -65,13 +66,14 @@ The script produces accuracy curves for:
 
 The dense-junk graph should be emphasized in writeups. Feature dropout and bit flip are useful extensions/controls.
 
-Results saved by `src/main.py` are reported as mean +- standard deviation over 3 random seeds.
+Results saved by `main.py` are reported as mean +- standard deviation over 3 random seeds.
 
 ## Creating Summary Tables and Aggregate Plots
 
-After running the main experiment, generate compact report tables with:
+After running the main experiment from inside `src/`, return to the repository root and generate compact report tables with:
 
 ```bash
+cd ..
 python src/make_results_table.py
 ```
 
