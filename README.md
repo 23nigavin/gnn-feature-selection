@@ -2,7 +2,7 @@
 
 This repository explores how graph neural networks behave when node features are flooded with irrelevant or misleading dimensions. The main experiments use the Cora citation graph and compare a baseline GCN against preprocessing approaches such as graph-aware feature selection, PCA, autoencoder embeddings, and a simplified learned feature mask.
 
-The project also includes a binary synthetic graph generator for testing specific assumptions, such as weak feature-label correlation, homophily strength, sparse useful features, and train-only spurious features.
+As a future-work extension, we also started building a binary synthetic graph generator for testing specific assumptions, such as weak feature-label correlation, homophily strength, sparse useful features, and train-only spurious features. This synthetic pipeline is meant to support deeper diagnosis beyond the main Cora experiments.
 
 ## Project Structure
 
@@ -12,7 +12,7 @@ The project also includes a binary synthetic graph generator for testing specifi
 ├── requirements.txt
 └── src
     ├── main.py                    # Main Cora experiment script
-    ├── synthetic_experiments.py   # Synthetic scenario experiment script
+    ├── synthetic_experiments.py   # Future-work synthetic scenario experiment script
     ├── experiments.py             # Experiment runners for GCN, feature selection, and autoencoder baselines
     ├── gnn.py                     # Two-layer GCN model plus train/test helpers
     ├── preprocessing_selection.py # Feature-selection methods
@@ -23,8 +23,8 @@ The project also includes a binary synthetic graph generator for testing specifi
     ├── util.py                    # Graph feature aggregation helper
     ├── plotting.py                # Plotting functions for accuracy curves
     ├── make_results_table.py      # Combines main result CSVs into a text table and aggregate plot
-    ├── synthetic_visualizations.py # Plotting helpers for synthetic experiment results
-    └── synthetic_data.py          # Binary synthetic graph dataset generator
+    ├── synthetic_visualizations.py # Future-work plotting helpers for synthetic experiment results
+    └── synthetic_data.py          # Future-work binary synthetic graph dataset generator
 ```
 
 Generated outputs such as `.png` plots, `.csv` result files, and `.txt` summary tables may also appear under `src/` after experiments are run.
@@ -152,9 +152,17 @@ The autoencoder supports:
 
 `src/masked_gnn.py` defines a simplified learned mask baseline. It is not a direct implementation of a specific paper. It learns one mask logit per feature, keeps the top-k entries, and trains a GCN on the masked feature matrix.
 
-## Synthetic Data
+## Synthetic Data and Future Work
 
-`src/synthetic_data.py` creates binary synthetic graph datasets for controlled tests.
+The main completed experiment pipeline in this repository is the Cora noise-sweep setup. In addition to that main pipeline, we began developing a synthetic dataset and synthetic experiment suite as future work. The purpose of this extension is to test the same feature-selection question in a more controlled setting where the true feature groups are known.
+
+`src/synthetic_data.py` creates binary synthetic graph datasets for controlled tests. Unlike Cora, where we do not know which feature dimensions are truly useful, the synthetic data explicitly tracks:
+
+- true signal features
+- random junk features
+- train-only spurious shortcut features
+
+This makes the synthetic setup useful for future analysis because it can measure not only accuracy, but also whether a feature-selection method is choosing meaningful features or being distracted by junk/spurious dimensions.
 
 The generator controls:
 
@@ -177,23 +185,40 @@ train_only_spurious
 anti_spurious_test
 ```
 
+The synthetic scenarios are exploratory and were not the main source of the final report results. They are included so the project can be extended in a more diagnostic direction.
+
 To run the predefined synthetic scenario sweep:
 
 ```bash
 python src/synthetic_experiments.py
 ```
 
-This evaluates a small set of methods on several synthetic assumptions:
+This evaluates the project methods on several synthetic assumptions:
 
 - no feature selection
 - raw L1 feature selection
 - graph-aware L1 feature selection
 - raw mutual information feature selection
 - graph-aware mutual information feature selection
+- PCA embeddings
 - autoencoder embeddings
+- learned top-k feature mask
 
-The script writes a CSV named `synthetic_results.csv`.
+The script writes a CSV named `src/synthetic_results.csv`.
 The synthetic script also records feature-recovery metrics for feature-selection methods, such as how many selected columns came from true signal, junk, or spurious feature groups.
+
+Synthetic visualizations can be generated with:
+
+```bash
+python src/synthetic_visualizations.py
+```
+
+These plots are intended as future-work diagnostics. They help answer questions such as:
+
+- when graph-aware feature selection improves over raw feature selection
+- whether methods recover true signal features
+- whether methods select spurious shortcut features
+- whether high accuracy is hiding reliance on non-robust features
 
 Example:
 
