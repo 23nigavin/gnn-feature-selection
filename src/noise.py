@@ -4,9 +4,9 @@ import torch
 """
 Simply appends junk features to feature nodes
 
-args:
-x, feature matrix, [number of nodes, number of features]
-num_junk_features, number of junk columns to append
+Args:
+    Original feature matrix (num_nodes x num_features)
+    num_junk_features: Number of junk features to add
 """
 def add_junk_features(x, num_junk_features):
     num_nodes = x.size(0)

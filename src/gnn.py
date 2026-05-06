@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 
-# simple 2 layer GCN
+# Simple 2-layer GCN for node classification
 class GCN(torch.nn.Module):
     def __init__(self, num_features, hidden_dim, num_classes, dropout=0.5):
         super().__init__()
@@ -17,7 +17,7 @@ class GCN(torch.nn.Module):
         x = self.conv2(x, edge_index)
         return x
 
-#trains model
+# Training function for the GCN
 def train(model, graph, optimizer):
     model.train()
     optimizer.zero_grad()
@@ -27,7 +27,7 @@ def train(model, graph, optimizer):
     optimizer.step()
     return loss.item()
 
-#tests model
+# Testing function for the GCN
 def test(model, graph):
     model.eval()
     out = model(graph.x, graph.edge_index)

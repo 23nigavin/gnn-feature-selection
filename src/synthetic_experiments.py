@@ -133,7 +133,9 @@ def selected_indices_for_method(data, method, k):
 
 
 def feature_recovery_metrics(data, selected_indices):
-    """Count how many selected columns came from signal, junk, or spurious groups."""
+    """
+    Count how many selected columns came from signal, junk, or spurious groups.
+    """
     if selected_indices is None:
         return {
             "signal_selected": None,
@@ -191,8 +193,7 @@ def run_synthetic_scenarios(
             metadata = None
 
             for seed in seeds:
-                # Rebuild the synthetic graph with this seed so results are not
-                # tied to one lucky/random graph draw.
+                # Rebuild the synthetic graph with this seed so results are not tied to one lucky/random graph draw.
                 dataset = make_scenario(scenario, seed=seed)
                 data = dataset[0]
                 k = selected_feature_budget(data)
@@ -211,6 +212,7 @@ def run_synthetic_scenarios(
                 mean_acc, std_acc = run_method(dataset, method, k, seed)
                 accuracies.append(mean_acc)
 
+                # Now that we have trained the model, see which features it selected and whether they were signal, junk, or spurious.
                 selected_indices = selected_indices_for_method(data, method, k)
                 recovery = feature_recovery_metrics(data, selected_indices)
                 recovery_by_seed.append(recovery)
@@ -238,6 +240,9 @@ def run_synthetic_scenarios(
 
 
 def save_synthetic_results(rows, filename):
+    """
+    Save the synthetic experiment results to a CSV file. Each row is one scenario-method combination, averaged across seeds.
+    """
     if not rows:
         return
 

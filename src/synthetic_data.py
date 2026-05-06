@@ -297,8 +297,7 @@ def make_synthetic_graph_data(
     ).astype(np.float32)
 
     # Create spurious features
-    # These features look useful on the training nodes.
-    # However, they do not generalize to validation/test nodes. We want to test whether the model learns real graph-aware signal or just memorizes shortcuts from the training set.
+    #We want to test whether the model learns real graph-aware signal or just memorizes shortcuts from the training set.
     x_spurious, spurious_by_class = make_binary_class_features(
         labels=labels,
         num_features=config.num_spurious_features,

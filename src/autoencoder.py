@@ -93,7 +93,8 @@ def train_autoencoder(
     verbose=True,
     reconstruction_loss_type="mse",
 ):
-    """Train an autoencoder with validation-based early stopping.
+    """
+    Train an autoencoder with validation-based early stopping.
 
     Args:
         model: Autoencoder model to train.

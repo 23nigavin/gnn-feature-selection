@@ -10,6 +10,9 @@ from experiments import (
 from plotting import plot_method_accuracy_vs_noise, plot_accuracy_vs_k
 
 def save_results_to_csv(noise_type, noise_levels, results_by_method, std_by_method, filename):
+    """
+    Save the results to a CSV file.
+    """
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["noise_type", "noise_level", "noise_percent", "method", "accuracy_mean", "accuracy_std"])
@@ -19,11 +22,18 @@ def save_results_to_csv(noise_type, noise_levels, results_by_method, std_by_meth
                 writer.writerow([noise_type, noise_level, 100 * noise_level, method, accuracy, std])
 
 def add_result(results_by_method, std_by_method, method, result):
+    """    
+    Helper function to add results to the results_by_method and std_by_method dictionaries.
+    """
     mean, std = result
     results_by_method[method].append(mean)
     std_by_method[method].append(std)
 
 def run_noise_sweep(dataset, original_num_features, noise_levels, noise_type, seeds):
+    """
+    Run the main noise sweep experiment, which varies the noise level for a given noise type and evaluates all methods at each noise level.
+    Returns dictionaries of results and standard deviations by method.
+    """
     results_by_method = {"No selection": [], "Raw l1": [], "Graph-aware l1": [], "Raw mutual_info": [], "Graph-aware mutual_info": [], "PCA": [], "Autoencoder": [], "Learned mask": []}
     std_by_method = {"No selection": [], "Raw l1": [], "Graph-aware l1": [], "Raw mutual_info": [], "Graph-aware mutual_info": [], "PCA": [], "Autoencoder": [], "Learned mask": []}
 
@@ -43,6 +53,10 @@ def run_noise_sweep(dataset, original_num_features, noise_levels, noise_type, se
     return results_by_method, std_by_method
 
 def run_k_sweep(dataset, noise_type, noise_ratio, k_values, seeds):
+    """
+    Run the k-sweep experiment, which varies the number of selected features for a given noise type and noise level.
+    Returns the accuracy of the clean baseline, the corrupted baseline, and the k-selection experiment.
+    """
     clean_baseline_acc, _ = run_no_selection_baseline_avg(dataset, noise_ratio=0.0, noise_type=noise_type, seeds=seeds)
     corrupted_baseline_acc, _ = run_no_selection_baseline_avg(dataset, noise_ratio=noise_ratio, noise_type=noise_type, seeds=seeds)
 
@@ -56,6 +70,9 @@ def run_k_sweep(dataset, noise_type, noise_ratio, k_values, seeds):
     return clean_baseline_acc, corrupted_baseline_acc, k_selection_acc
 
 def main():
+    """
+    Main entry point for running the experiments and generating the plots.
+    """
     dataset = Planetoid(root="data/Planetoid", name="Cora")
     original_num_features = dataset[0].x.shape[1]
     
