@@ -69,7 +69,7 @@ Results saved by `src/main.py` are reported as mean +- standard deviation over 3
 
 ## Creating Summary Tables and Aggregate Plots
 
-After running the main experiment, generate a combined text table and aggregate average-accuracy plot with:
+After running the main experiment, generate compact report tables with:
 
 ```bash
 python src/make_results_table.py
@@ -84,7 +84,19 @@ This reads the three main result CSV files:
 and writes:
 
 - `src/accuracy_results_table.txt`
-- `src/average_accuracy_across_noise_settings.png`
+- `src/full_accuracy_results_table.txt`
+- `src/average_accuracy_across_noise_settings.png`, if `matplotlib` is installed
+
+`src/accuracy_results_table.txt` is the report-friendly summary. It contains:
+
+- a highest-noise summary with one row per noise type
+- an accuracy-drop table comparing clean accuracy to the hardest noise setting
+
+This version is easier to use in the report because it shows the robustness story directly instead of listing every method at every noise level.
+
+`src/full_accuracy_results_table.txt` keeps the full detailed table with every result row. This is mostly useful as a backup or appendix-style reference.
+
+The plot `src/average_accuracy_across_noise_settings.png` summarizes average method performance across all nonzero noise settings. If `matplotlib` is not installed, the script still writes the text tables and skips the plot.
 
 ## Core Components
 
