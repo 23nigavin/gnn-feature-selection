@@ -1,16 +1,21 @@
 import csv
+from pathlib import Path
 
 import numpy as np
 
 from experiments import (
     run_autoencoder_experiment_avg,
+    run_learned_mask_experiment_avg,
     run_no_selection_baseline_avg,
+    run_pca_experiment_avg,
     run_preprocessing_selection_experiment_avg,
 )
 from preprocessing_selection import select_features_mutual_info, select_top_k_features_l1
 from synthetic_data import make_scenario
 from util import aggregate_features
 
+
+DEFAULT_OUTPUT_CSV = Path(__file__).with_name("synthetic_results.csv")
 
 SCENARIOS_TO_RUN = [
     "weak_features_strong_graph",
@@ -30,7 +35,9 @@ METHODS_TO_RUN = [
     "Graph-aware l1",
     "Raw mutual_info",
     "Graph-aware mutual_info",
+    "PCA",
     "Autoencoder",
+    "Learned mask",
 ]
 
 SELECTION_METHODS = {
@@ -84,6 +91,25 @@ def run_method(dataset, method, k, seed):
             noise_ratio=0.0,
             noise_type="dense_junk",
             latent_dim=min(64, dataset[0].x.shape[1]),
+            seeds=[seed],
+        )
+
+    if method == "PCA":
+        return run_pca_experiment_avg(
+            dataset,
+            noise_ratio=0.0,
+            noise_type="dense_junk",
+            n_components=min(64, dataset[0].x.shape[1]),
+            seeds=[seed],
+        )
+
+    if method == "Learned mask":
+        return run_learned_mask_experiment_avg(
+            dataset,
+            noise_ratio=0.0,
+            noise_type="dense_junk",
+            mask_lambda=0.0,
+            k=k,
             seeds=[seed],
         )
 
@@ -146,7 +172,7 @@ def run_synthetic_scenarios(
     scenarios=None,
     methods=None,
     seeds=None,
-    output_csv="synthetic_results.csv",
+    output_csv=DEFAULT_OUTPUT_CSV,
 ):
     if scenarios is None:
         scenarios = SCENARIOS_TO_RUN
